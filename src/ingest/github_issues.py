@@ -181,7 +181,9 @@ def sleep_until_reset(resp: requests.Response) -> None:
     sleep_for = max(0, reset_ts - now_ts) + 5
 
     reset_dt = datetime.fromtimestamp(reset_ts, tz=timezone.utc)
-    LOGGER.warning("Rate limited. Sleeping %ss until %s.", sleep_for, reset_dt.isoformat())
+    LOGGER.warning(
+        "Rate limited. Sleeping %ss until %s.", sleep_for, reset_dt.isoformat()
+    )
     time.sleep(sleep_for)
 
 
@@ -235,7 +237,12 @@ def fetch_issues_page(
         )
         raise RuntimeError(msg)
 
-    LOGGER.info("Fetched page %s (%s). %s", page, target.full_name(), rate_limit_status(resp.headers))
+    LOGGER.info(
+        "Fetched page %s (%s). %s",
+        page,
+        target.full_name(),
+        rate_limit_status(resp.headers),
+    )
 
     data = resp.json()
     if not isinstance(data, list):
@@ -330,7 +337,9 @@ def parse_args() -> argparse.Namespace:
         The parsed CLI arguments namespace.
 
     """
-    parser = argparse.ArgumentParser(description="Collect editorialbot issues from joss-reviews.")
+    parser = argparse.ArgumentParser(
+        description="Collect editorialbot issues from joss-reviews."
+    )
     parser.add_argument("--owner", default="openjournals", help="GitHub owner/org")
     parser.add_argument("--repo", default="joss-reviews", help="GitHub repo")
     parser.add_argument("--bot", default="editorialbot", help="User login to filter")
@@ -357,8 +366,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Maximum number of pages to fetch (for testing). Default: no limit.",
     )
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing issue files")
-    parser.add_argument("--log-level", default="INFO", help="Logging level (DEBUG/INFO/WARNING/ERROR)")
+    parser.add_argument(
+        "--overwrite", action="store_true", help="Overwrite existing issue files"
+    )
+    parser.add_argument(
+        "--log-level", default="INFO", help="Logging level (DEBUG/INFO/WARNING/ERROR)"
+    )
     return parser.parse_args()
 
 
@@ -407,7 +420,9 @@ def main() -> int:
 
     config = build_config(args)
     if config.per_page != PER_PAGE_REQUIRED:
-        LOGGER.warning("Project requirement is per_page=100. You set %s.", config.per_page)
+        LOGGER.warning(
+            "Project requirement is per_page=100. You set %s.", config.per_page
+        )
 
     session = requests.Session()
     session.headers.update(build_headers(config.token))
@@ -417,7 +432,9 @@ def main() -> int:
     total_bot = 0
     total_written = 0
 
-    LOGGER.info("Starting collection for %s (bot=%s).", config.target.full_name(), config.bot)
+    LOGGER.info(
+        "Starting collection for %s (bot=%s).", config.target.full_name(), config.bot
+    )
     LOGGER.info("Output directory: %s", config.out_dir.resolve())
 
     while True:
