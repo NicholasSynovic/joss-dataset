@@ -16,90 +16,18 @@ Outputs:
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-from collections import Counter
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
+
+from .utils import count_years, load_submissions
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
-def _unix_to_year(ts: int) -> int:
-    """
-    Convert unix seconds to UTC year.
-
-    Args:
-        ts: UNIX timestamp in seconds.
-
-    Returns:
-        The UTC year corresponding to the timestamp.
-
-    """
-    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
-    return int(dt.year)
-
-
-def _load_submissions(path: Path) -> list[dict[str, Any]]:
-    """
-    Load normalized submissions JSON list.
-
-    Args:
-        path: Path to a JSON file containing a top-level list of submissions.
-
-    Returns:
-        A list of submission objects (dicts).
-
-    Raises:
-        RuntimeError: If the JSON is not a top-level list.
-
-    """
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, list):
-        msg = "Expected top-level JSON list of submissions"
-        raise RuntimeError(msg)
-
-    return [item for item in data if isinstance(item, dict)]
-
-
-def _count_years(
-    submissions: list[dict[str, Any]],
-    key: str,
-    *,
-    skip_zero: bool,
-) -> Counter[int]:
-    """
-    Count occurrences per UTC year for a given UNIX timestamp key.
-
-    Args:
-        submissions: Normalized submissions list.
-        key: Field name containing UNIX timestamp seconds (e.g., "Opened", "Closed").
-        skip_zero: Whether to skip timestamps equal to 0.
-
-    Returns:
-        A Counter mapping year -> count.
-
-    """
-    counts: Counter[int] = Counter()
-
-    for sub in submissions:
-        ts = sub.get(key)
-        if not isinstance(ts, int):
-            continue
-        if skip_zero and ts == 0:
-            continue
-
-        year = _unix_to_year(ts)
-        counts[year] += 1
-
-    return counts
-
-
 def _plot_counts(
-    counts: Counter[int],
+    counts: dict[int, int],
     *,
     title: str,
     xlabel: str,
@@ -110,7 +38,7 @@ def _plot_counts(
     Plot counts per year and save to PNG.
 
     Args:
-        counts: Counter mapping year -> count.
+        counts: Mapping year -> count.
         title: Plot title.
         xlabel: X-axis label.
         ylabel: Y-axis label.
@@ -200,11 +128,11 @@ def main() -> int:
         )
         raise RuntimeError(msg)
 
-    submissions = _load_submissions(in_file)
+    submissions = load_submissions(in_file)
     LOGGER.info("Loaded %s submissions from %s", len(submissions), in_file)
 
-    opened_counts = _count_years(submissions, "Opened", skip_zero=False)
-    closed_counts = _count_years(submissions, "Closed", skip_zero=True)
+    opened_counts = count_years(submissions, "Opened", skip_zero=False)
+    closed_counts = count_years(submissions, "Closed", skip_zero=True)
 
     LOGGER.info(
         "Opened years: %s-%s (total=%s)",
