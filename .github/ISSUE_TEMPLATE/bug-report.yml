@@ -1,31 +1,47 @@
-name: Bug Report
-description: File a bug report.
+name: 🐛 Bug Report
+description: File a bug report to help us improve.
 title: "[Bug]: "
-labels: ["bug", "triage"]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
-  - type: input
-    id: contact
-    attributes:
-      label: Contact Details
-      description: How can we get in touch with you if we need more info?
-      placeholder: ex. email@example.com
-    validations:
-      required: false
+        Thanks for taking the time to fill out this bug report! Structured data helps us reproduce and fix issues faster.
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
-      description: Also tell us, what did you expect to happen?
-      placeholder: Tell us what you see!
+      description: A clear and concise description of the bug.
+      placeholder: Describe the issue in detail...
     validations:
       required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Tell us exactly how to trigger this bug.
+      placeholder: |
+        1. Run 'git log...'
+        2. Execute the Python script...
+        3. See error...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / Commit Hash
+      description: What is the application version that causes this issue
+      placeholder: e.g., a1b2c3d or v1.0.2
   - type: textarea
     id: logs
     attributes:
       label: Relevant log output
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      description: Please copy and paste any relevant log output.
       render: shell
