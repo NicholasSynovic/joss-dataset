@@ -1,0 +1,74 @@
+name: "🚀 Feature Request"
+description: Propose a new capability, integration, or system optimization
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping us evolve! Use this form to propose changes that improve functionality across our ecosystem.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "❓ Problem Statement"
+      description: What is the current limitation or "pain point" you are experiencing?
+      placeholder: "Example: The system currently handles data sequentially, which limits throughput on high-volume inputs..."
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: "🎯 Desired Outcome"
+      description: What should the system be capable of once this is finished?
+      placeholder: "Focus on the 'What', not the 'How'."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "✅ Acceptance Criteria"
+      description: List the specific requirements that verify this feature is working as intended.
+      placeholder: |
+        - [ ] Feature handles input X and produces output Y
+        - [ ] Performance meets the threshold of Z
+        - [ ] Documentation is updated to reflect new capability
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: "🚧 Scope Boundaries"
+      description: What is explicitly included and, more importantly, excluded from this request?
+      placeholder: |
+        Included:
+        - ...
+        Excluded:
+        - ...
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: "📈 Strategic Impact"
+      description: How does this change benefit the broader ecosystem?
+      options:
+        - "User Experience: Makes the system easier/faster to use"
+        - "Infrastructure: Improves reliability or scalability"
+        - "Capability: Enables a new type of analysis or workflow"
+        - "Maintenance: Reduces technical debt"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "💡 Proposed Implementation (Optional)"
+      description: If you have a specific technical approach in mind, describe it here.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "🔄 Alternatives Considered"
+      description: What other ways could we solve this problem?
+    validations:
+      required: false

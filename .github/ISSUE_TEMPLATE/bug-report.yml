@@ -1,47 +1,84 @@
-name: 🐛 Bug Report
-description: File a bug report to help us improve.
+name: "🐛 Bug Report"
+description: Report a defect or unexpected behavior
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report! Structured data helps us reproduce and fix issues faster.
+        Please provide as much detail as possible to help us resolve this issue. Structured data helps us reproduce and fix defects faster.
   - type: textarea
-    id: what-happened
+    id: current
     attributes:
-      label: What happened?
-      description: A clear and concise description of the bug.
-      placeholder: Describe the issue in detail...
-    validations:
-      required: true
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: Steps to Reproduce
-      description: Tell us exactly how to trigger this bug.
-      placeholder: |
-        1. Run 'git log...'
-        2. Execute the Python script...
-        3. See error...
+      label: "🔄 Observed Behavior"
+      description: Describe what is currently happening. What went wrong?
+      placeholder: "Example: The ingestion script fails with a 'MemoryError' when processing blobs larger than 2GB..."
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
+      label: "🎯 Expected Behavior"
       description: What did you expect to happen?
+      placeholder: "Example: The system should stream large blobs to disk or process them in chunks without crashing."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "🧪 Steps to Reproduce"
+      description: Provide a clear sequence of actions to trigger this bug.
+      placeholder: |
+        1. Initialize system with configuration X
+        2. Input data set Y
+        3. Run command Z
+        4. See error output
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "🚨 Severity / Impact"
+      description: How critical is this issue to your workflow?
+      options:
+        - "Blocker: System is unusable"
+        - "Major: Core functionality is broken"
+        - "Minor: Workaround exists / UI glitch"
+        - "Trivial: Typo or cosmetic issue"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: "📂 Affected Component"
+      description: Which high-level module is failing?
+      options:
+        - Data Ingestion
+        - Analysis / Modeling
+        - Visualization
+        - Infrastructure / Tooling
+        - Documentation
+        - Other
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: Version / Commit Hash
-      description: What is the application version that causes this issue
-      placeholder: e.g., a1b2c3d or v1.0.2
+      label: "🆔 Version / Environment"
+      description: Which version or environment (e.g., commit hash, OS) are you using?
+      placeholder: "e.g., v2.1.0, macOS, commit a1b2c3d"
+    validations:
+      required: true
   - type: textarea
     id: logs
     attributes:
-      label: Relevant log output
-      description: Please copy and paste any relevant log output.
+      label: "📋 Relevant Logs / Error Output"
+      description: Please copy and paste any relevant console output or stack traces.
       render: shell
+  - type: textarea
+    id: constraints
+    attributes:
+      label: "⚠️ Constraints & Context (Optional)"
+      description: Any unique hardware or configuration details that might be relevant.
+    validations:
+      required: false

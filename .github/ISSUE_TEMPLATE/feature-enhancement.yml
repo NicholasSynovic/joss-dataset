@@ -1,0 +1,80 @@
+name: "⚡ Enhancement"
+description: Improve, optimize, or extend existing functionality
+title: "[Enhancement]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to propose optimizations to existing workflows. If you are proposing a brand-new capability, please use the **Feature Request** template instead.
+  - type: textarea
+    id: current
+    attributes:
+      label: "🔄 Current Behavior"
+      description: Describe the current implementation and its limitations.
+      placeholder: "Currently, the system processes X by doing Y, which results in..."
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: "🚀 Proposed Optimization"
+      description: How should the behavior change? Focus on the efficiency or logic shift.
+      placeholder: "I propose refactoring X to use Z, which will streamline..."
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: "💎 Rationale & Value"
+      description: Why is this change beneficial? (e.g., Performance, Readability, Scalability)
+      placeholder: "This will reduce memory overhead by 20% and simplify the API for..."
+    validations:
+      required: true
+  - type: dropdown
+    id: improvement-type
+    attributes:
+      label: "📊 Primary Improvement Area"
+      description: What is the main driver for this enhancement?
+      options:
+        - Performance / Speed
+        - Code Quality / Refactoring
+        - Scalability / Resource Usage
+        - Reliability / Robustness
+        - Security
+        - Developer Experience (DX)
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "✅ Success Criteria"
+      description: What conditions must be met to consider this enhancement complete?
+      placeholder: |
+        - [ ] Behavior X is replaced by Optimized Behavior Y
+        - [ ] Benchmarks show no regression in Z
+        - [ ] Backward compatibility is maintained for existing integrations
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: "📂 Affected Component"
+      description: Which high-level module does this touch?
+      options:
+        - Data Ingestion
+        - Analysis / Modeling
+        - Visualization
+        - Infrastructure / Tooling
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: "⚠️ Constraints & Compatibility"
+      description: Mention any potential breaking changes or environment requirements.
+      placeholder: "Note: This may require a schema migration or an update to dependency X..."
+    validations:
+      required: false
