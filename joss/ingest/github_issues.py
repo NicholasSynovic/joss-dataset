@@ -71,12 +71,9 @@ class Config:
 
     token: str
     target: RepoTarget
-    bot: str
-    out_dir: Path
-    state: str
     per_page: int
-    overwrite: bool
     max_pages: int | None
+    timestamp: int
 
 
 def utc_now_iso() -> str:
@@ -252,83 +249,6 @@ def fetch_issues_page(
     return cast(JsonList, data)
 
 
-def opened_by_login(issue: JsonObject, login: str) -> bool:
-    """
-    Return True if the issue object was opened by `login`.
-
-    Args:
-        issue: An issue JSON object.
-        login: GitHub username/login to match.
-
-    Returns:
-        True if the issue was opened by `login`, otherwise False.
-
-    """
-    user_obj = issue.get("user")
-    if not isinstance(user_obj, dict):
-        return False
-    user_login = user_obj.get("login")
-    return isinstance(user_login, str) and user_login == login
-
-
-def issue_number(issue: JsonObject) -> int | None:
-    """
-    Extract the issue number if present.
-
-    Args:
-        issue: An issue JSON object.
-
-    Returns:
-        The issue number if present; otherwise None.
-
-    """
-    number = issue.get("number")
-    if isinstance(number, int):
-        return number
-    return None
-
-
-def write_issue_file(
-    issue: JsonObject,
-    *,
-    out_dir: Path,
-    repo_full_name: str,
-    overwrite: bool,
-) -> bool:
-    """
-    Write a single issue object to disk.
-
-    Args:
-        issue: An issue JSON object.
-        out_dir: Output directory for issue JSON files.
-        repo_full_name: Repository name in 'owner/repo' format.
-        overwrite: Whether to overwrite an existing issue file.
-
-    Returns:
-        True if written; False if skipped.
-
-    """
-    number = issue_number(issue)
-    if number is None:
-        return False
-
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"issue_{number}.json"
-
-    if out_path.exists() and not overwrite:
-        return False
-
-    payload: JsonObject = {
-        "source": "github",
-        "repo": repo_full_name,
-        "fetched_at": utc_now_iso(),
-        "issue": issue,
-    }
-
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
-    return True
-
-
 def parse_args() -> argparse.Namespace:
     """
     Parse CLI arguments.
@@ -338,18 +258,7 @@ def parse_args() -> argparse.Namespace:
 
     """
     parser = argparse.ArgumentParser(
-        description="Collect editorialbot issues from joss-reviews."
-    )
-    parser.add_argument(
-        "--out-dir",
-        default="data/raw/openjournals_joss-reviews/issues",
-        help="Output directory for JSON files",
-    )
-    parser.add_argument(
-        "--state",
-        default="all",
-        choices=["open", "closed", "all"],
-        help="Issue state filter",
+        description="Collect all issues from openjournals/joss-reviews."
     )
     parser.add_argument(
         "--max-pages",
@@ -357,18 +266,16 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Maximum number of pages to fetch (for testing). Default: no limit.",
     )
-    parser.add_argument(
-        "--overwrite", action="store_true", help="Overwrite existing issue files"
-    )
     return parser.parse_args()
 
 
-def build_config(args: argparse.Namespace) -> Config:
+def build_config(args: argparse.Namespace, timestamp: int) -> Config:
     """
     Build a Config instance from parsed CLI arguments.
 
     Args:
         args: Parsed CLI arguments.
+        timestamp: UNIX timestamp for file naming.
 
     Returns:
         A Config instance for the run.
@@ -376,17 +283,13 @@ def build_config(args: argparse.Namespace) -> Config:
     """
     token = get_token()
     target = RepoTarget(owner="openjournals", repo="joss-reviews")
-    out_dir = Path(str(args.out_dir))
 
     return Config(
         token=token,
         target=target,
-        bot="editorialbot",
-        out_dir=out_dir,
-        state=str(args.state),
         per_page=PER_PAGE_REQUIRED,
-        overwrite=bool(args.overwrite),
         max_pages=args.max_pages,
+        timestamp=timestamp,
     )
 
 
@@ -400,8 +303,11 @@ def main() -> int:
     """
     args = parse_args()
 
+    # Get timestamp once for both log and JSON files
+    timestamp = int(time.time())
+
     # Configure file logging with DEBUG level and UNIX timestamp filename
-    log_filename = f"github_issues_{int(time.time())}.log"
+    log_filename = f"github_issues_{timestamp}.log"
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -411,24 +317,18 @@ def main() -> int:
     )
     LOGGER.info("Logging to file: %s", log_filename)
 
-    config = build_config(args)
+    config = build_config(args, timestamp)
 
     session = requests.Session()
     session.headers.update(build_headers(config.token))
 
     page = 1
     total_fetched = 0
-    total_bot = 0
-    total_written = 0
+    all_issues: JsonList = []
 
-    LOGGER.info(
-        "Starting collection for %s (bot=%s).", config.target.full_name(), config.bot
-    )
-    LOGGER.info("Output directory: %s", config.out_dir.resolve())
+    LOGGER.info("Starting collection for %s.", config.target.full_name())
 
-    spinner = Spinner(
-        "Getting `editorialbot` created issues from `gh:openjournals/joss-reviews`... "
-    )
+    spinner = Spinner("Getting issues from `gh:openjournals/joss-reviews`... ")
 
     while True:
         issues = fetch_issues_page(
@@ -436,35 +336,17 @@ def main() -> int:
             config.target,
             page=page,
             per_page=config.per_page,
-            state=config.state,
+            state="all",
         )
         spinner.next()
         if issues == []:
             break
 
         total_fetched += len(issues)
-
-        bot_issues = [issue for issue in issues if opened_by_login(issue, config.bot)]
-        total_bot += len(bot_issues)
-
-        written_this_page = 0
-        for issue in bot_issues:
-            if write_issue_file(
-                issue,
-                out_dir=config.out_dir,
-                repo_full_name=config.target.full_name(),
-                overwrite=config.overwrite,
-            ):
-                total_written += 1
-                written_this_page += 1
+        all_issues.extend(issues)
 
         LOGGER.info(
-            "Page %s: fetched=%s bot_issues=%s written=%s (total_written=%s)",
-            page,
-            len(issues),
-            len(bot_issues),
-            written_this_page,
-            total_written,
+            "Page %s: fetched=%s total_collected=%s", page, len(issues), len(all_issues)
         )
 
         if len(issues) < config.per_page:
@@ -478,12 +360,18 @@ def main() -> int:
 
     spinner.finish()
 
-    LOGGER.info(
-        "Done. total_fetched=%s total_bot=%s total_written=%s",
-        total_fetched,
-        total_bot,
-        total_written,
+    # Write all issues to a single JSON file
+    json_filename: Path = Path(f"github_issues_{config.timestamp}.json").absolute()
+    json.dump(
+        all_issues,
+        json_filename.open(mode="w", encoding="utf-8"),
+        indent=4,
     )
+
+    LOGGER.info(
+        "Done. total_fetched=%s total_issues=%s", total_fetched, len(all_issues)
+    )
+    LOGGER.info("Saved to: %s", json_filename)
     return 0
 
 
