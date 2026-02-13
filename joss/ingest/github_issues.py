@@ -1,8 +1,7 @@
-# Copyright (c) 2026.
-# SPDX-License-Identifier: MIT
-
 """
 Collect issues opened by `editorialbot` from `openjournals/joss-reviews`.
+
+Copyright 2026 (C) Nicholas M. Synovic
 
 This script queries the GitHub REST API for issues (open + closed) from the
 `openjournals/joss-reviews` repository only, filters to those opened by the
@@ -340,7 +339,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Collect editorialbot issues from joss-reviews."
     )
-    parser.add_argument("--bot", default="editorialbot", help="User login to filter")
     parser.add_argument(
         "--out-dir",
         default="data/raw/openjournals_joss-reviews/issues",
@@ -391,7 +389,7 @@ def build_config(args: argparse.Namespace) -> Config:
     return Config(
         token=token,
         target=target,
-        bot=str(args.bot),
+        bot="editorialbot",
         out_dir=out_dir,
         state=str(args.state),
         per_page=int(args.per_page),
