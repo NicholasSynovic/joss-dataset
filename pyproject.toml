@@ -5,7 +5,6 @@ description = "Hello World"
 authors = [{ name = "Nicholas M. Synovic", email = "nicholas.synovic@gmail.com" }]
 requires-python = "~=3.13"
 readme = "README.md"
-license = "AGPL-3.0-only"
 keywords = ["Template"]
 classifiers = [
     "Development Status :: 1 - Planning",
