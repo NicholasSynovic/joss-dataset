@@ -1,11 +1,11 @@
 [project]
-name = "src"
+name = "joss"
 version = "0.0.0"
-description = "Hello World"
+description = "Journal of Open Source Software (JOSS) dataset"
 authors = [{ name = "Nicholas M. Synovic", email = "nicholas.synovic@gmail.com" }]
 requires-python = "~=3.13"
 readme = "README.md"
-keywords = ["Template"]
+keywords = ["oss", "academic", "dataset", "github-issues", "joss"]
 classifiers = [
     "Development Status :: 1 - Planning",
     "License :: OSI Approved :: GNU Affero General Public License v3",
@@ -13,11 +13,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/NicholasSynovic/template_python"
-Repository = "https://github.com/NicholasSynovic/template_python"
+Homepage = "https://github.com/NicholasSynovic/joss-dataset"
+Repository = "https://github.com/NicholasSynovic/joss-dataset"
 
 [project.scripts]
-src = "src.main:main"
+src = "joss.main:main"
 
 
 [build-system]
