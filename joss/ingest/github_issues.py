@@ -5,7 +5,7 @@
 Collect issues opened by `editorialbot` from `openjournals/joss-reviews`.
 
 This script queries the GitHub REST API for issues (open + closed) from the
-`openjournals/joss-reviews` repository, filters to those opened by the
+`openjournals/joss-reviews` repository only, filters to those opened by the
 `editorialbot` account, and writes each issue to an individual JSON file for
 downstream analysis.
 
@@ -340,8 +340,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Collect editorialbot issues from joss-reviews."
     )
-    parser.add_argument("--owner", default="openjournals", help="GitHub owner/org")
-    parser.add_argument("--repo", default="joss-reviews", help="GitHub repo")
     parser.add_argument("--bot", default="editorialbot", help="User login to filter")
     parser.add_argument(
         "--out-dir",
@@ -387,7 +385,7 @@ def build_config(args: argparse.Namespace) -> Config:
 
     """
     token = get_token()
-    target = RepoTarget(owner=str(args.owner), repo=str(args.repo))
+    target = RepoTarget(owner="openjournals", repo="joss-reviews")
     out_dir = Path(str(args.out_dir))
 
     return Config(
