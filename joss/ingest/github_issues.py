@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import cast
 
 import requests
+from progress.spinner import Spinner
 
 API_BASE: str = "https://api.github.com"
 GITHUB_API_VERSION: str = "2022-11-28"
@@ -359,9 +360,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--overwrite", action="store_true", help="Overwrite existing issue files"
     )
-    parser.add_argument(
-        "--log-level", default="INFO", help="Logging level (DEBUG/INFO/WARNING/ERROR)"
-    )
     return parser.parse_args()
 
 
@@ -402,11 +400,16 @@ def main() -> int:
     """
     args = parse_args()
 
-    level_name = str(args.log_level).upper()
+    # Configure file logging with DEBUG level and UNIX timestamp filename
+    log_filename = f"github_issues_{int(time.time())}.log"
     logging.basicConfig(
-        level=getattr(logging, level_name, logging.INFO),
-        format="%(levelname)s: %(message)s",
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_filename),
+        ],
     )
+    LOGGER.info("Logging to file: %s", log_filename)
 
     config = build_config(args)
 
@@ -423,6 +426,10 @@ def main() -> int:
     )
     LOGGER.info("Output directory: %s", config.out_dir.resolve())
 
+    spinner = Spinner(
+        "Getting `editorialbot` created issues from `gh:openjournals/joss-reviews`... "
+    )
+
     while True:
         issues = fetch_issues_page(
             session,
@@ -431,6 +438,7 @@ def main() -> int:
             per_page=config.per_page,
             state=config.state,
         )
+        spinner.next()
         if issues == []:
             break
 
@@ -467,6 +475,8 @@ def main() -> int:
             break
 
         page += 1
+
+    spinner.finish()
 
     LOGGER.info(
         "Done. total_fetched=%s total_bot=%s total_written=%s",
