@@ -351,12 +351,6 @@ def parse_args() -> argparse.Namespace:
         help="Issue state filter",
     )
     parser.add_argument(
-        "--per-page",
-        type=int,
-        default=PER_PAGE_REQUIRED,
-        help="Items per page (default 100)",
-    )
-    parser.add_argument(
         "--max-pages",
         type=int,
         default=None,
@@ -392,7 +386,7 @@ def build_config(args: argparse.Namespace) -> Config:
         bot="editorialbot",
         out_dir=out_dir,
         state=str(args.state),
-        per_page=int(args.per_page),
+        per_page=PER_PAGE_REQUIRED,
         overwrite=bool(args.overwrite),
         max_pages=args.max_pages,
     )
@@ -415,10 +409,6 @@ def main() -> int:
     )
 
     config = build_config(args)
-    if config.per_page != PER_PAGE_REQUIRED:
-        LOGGER.warning(
-            "Project requirement is per_page=100. You set %s.", config.per_page
-        )
 
     session = requests.Session()
     session.headers.update(build_headers(config.token))
