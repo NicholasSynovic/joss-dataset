@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from src.transform.joss_submission import from_github_issue_payload
+from joss.transform.joss_submission import from_github_issue_payload
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 

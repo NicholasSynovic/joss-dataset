@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +26,12 @@ class JOSSUtils:
         return json.loads(path.read_text(encoding="utf-8"))
 
     @staticmethod
-    def save_json(data: Any, path: Path, *, indent: int = 2) -> None:  # noqa: ANN401
+    def save_json(
+        data: Any,
+        path: Path,
+        *,
+        indent: int = 4,
+    ) -> None:  # noqa: ANN401
         """
         Serialize data to a JSON file on disk.
 
@@ -44,13 +49,13 @@ class JOSSUtils:
     @staticmethod
     def get_timestamp() -> int:
         """
-        Return the current UNIX timestamp in seconds.
+        Return the current UTC time in ISO-8601 format (seconds precision).
 
         Returns:
-            Current UNIX timestamp as an integer.
+            The current UTC time in ISO-8601 format (seconds precision).
 
         """
-        return int(time.time())
+        return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     @staticmethod
     def extract_timestamp_from_filename(filename: str) -> int | None:

@@ -2,10 +2,13 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 from joss.cli import CLI
 from joss.ingest.joss import JOSSIngest
+from joss.logger import JOSSLogger
 from joss.transform.joss import JOSSTransform
+from joss.utils import JOSSUtils
 
 
 def main() -> None:
@@ -45,9 +48,27 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
+    timestamp: int = JOSSUtils.get_timestamp()
+    logger: JOSSLogger = JOSSLogger(name=__name__)
+
     if args.command == "ingest":
-        exit_code = JOSSIngest(max_pages=args.max_pages).execute()
+        # Get GitHub issues from openjournals/joss-review
+        issues: list[dict] = JOSSIngest(
+            token=CLI.get_token(),
+            max_pages=args.max_pages,
+        ).execute()
+
+        # Save issues to a JSON file
+        json_path: Path = Path(
+            f"github_issues_{timestamp}.json",
+        ).absolute()
+        JOSSUtils.save_json(issues, json_path, indent=4)
+
+        logger.get_logger().info("Saved to: %s", json_path)
+        return 0
+
     elif args.command == "transform":
+        # Normalize JOSS collected GitHub issues
         exit_code = JOSSTransform(in_file=args.in_file).execute()
     else:
         parser.print_help()

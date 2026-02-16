@@ -1,3 +1,6 @@
+# Copyright (c) 2026.
+# SPDX-License-Identifier: MIT
+
 """Unified transform sub-command for the JOSS CLI."""
 
 import logging
@@ -5,11 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from joss.logger import JOSSLogger
-from joss.transform.normalize_joss_submissions import (
-    NormalGitHubIssue,
-    _has_defaults,
-    normalize_github_issue,
-)
+from joss.transform.joss_submission import from_github_issue_payload
+from joss.transform.normalize_joss_submissions import _labels_from_issue
 from joss.utils import JOSSUtils
 
 
@@ -39,50 +39,67 @@ class JOSSTransform:
     def _normalize_issues(
         issues: list[dict[str, Any]],
         logger: logging.Logger,
-    ) -> tuple[list[dict[str, Any]], int]:
+    ) -> tuple[list[dict[str, Any]], int, int]:
         """
-        Normalize all issues into ``NormalGitHubIssue`` records.
+        Normalize all issues into ``JOSSSubmission`` records.
+
+        Each raw GitHub issue dictionary is validated, its fields
+        extracted, and then passed to
+        :func:`~joss.transform.joss_submission.from_github_issue_payload`
+        for normalization.
 
         Args:
             issues: List of raw GitHub issue dictionaries.
             logger: Logger instance for warnings.
 
         Returns:
-            A tuple of (normalized_issues, defaults_used_count).
+            A tuple of (normalized_issues, skipped_count, failed_count).
 
         """
         normalized: list[dict[str, Any]] = []
-        defaults_used: int = 0
+        skipped: int = 0
+        failed: int = 0
 
         for issue in issues:
             if not isinstance(issue, dict):
-                defaults_used += 1
+                skipped += 1
                 continue
 
+            body = issue.get("body")
+            if not isinstance(body, str) or "<!--author-handle-->" not in body:
+                skipped += 1
+                continue
+
+            number = issue.get("number")
+            created_at = issue.get("created_at")
+            closed_at = issue.get("closed_at")
+
+            if not isinstance(number, int) or not isinstance(created_at, str):
+                skipped += 1
+                continue
+
+            labels = _labels_from_issue(issue)
+
             try:
-                normalized_issue = normalize_github_issue(issue)
-
-                if _has_defaults(normalized_issue):
-                    defaults_used += 1
-
-                normalized.append(
-                    normalized_issue.model_dump(by_alias=True),
+                submission = from_github_issue_payload(
+                    issue_number=number,
+                    body=body,
+                    created_at=created_at,
+                    closed_at=closed_at if isinstance(closed_at, str) else None,
+                    labels=labels,
                 )
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Failed to normalize issue: %s", exc)
-                defaults_used += 1
-                try:
-                    default_issue = NormalGitHubIssue()
-                    normalized.append(
-                        default_issue.model_dump(by_alias=True),
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning(
-                        "Failed to create default issue: %s",
-                        exc,
-                    )
+                failed += 1
+                logger.warning(
+                    "Failed to normalize issue #%s: %s",
+                    number,
+                    exc,
+                )
+                continue
 
-        return normalized, defaults_used
+            normalized.append(submission.model_dump(by_alias=True))
+
+        return normalized, skipped, failed
 
     def execute(self) -> int:
         """
@@ -120,7 +137,7 @@ class JOSSTransform:
         issues: list[dict[str, Any]] = data
         logger.info("Found %s issues to normalize", len(issues))
 
-        normalized, defaults_used = self._normalize_issues(issues, logger)
+        normalized, skipped, failed = self._normalize_issues(issues, logger)
 
         out_path = Path(
             f"github_issues_normalized_{timestamp}.json",
@@ -128,9 +145,10 @@ class JOSSTransform:
         JOSSUtils.save_json(normalized, out_path)
 
         logger.info(
-            "Wrote %s normalized issues to %s (defaults_used=%s).",
+            "Wrote %s normalized issues to %s (skipped=%s failed=%s).",
             len(normalized),
             out_path,
-            defaults_used,
+            skipped,
+            failed,
         )
         return 0

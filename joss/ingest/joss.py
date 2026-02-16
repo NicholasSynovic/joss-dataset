@@ -1,29 +1,22 @@
 """Unified ingest sub-command for the JOSS CLI."""
 
-from __future__ import annotations
-
 import logging
-from pathlib import Path
-from typing import Any
+from logging import Logger
 
 import requests
 from progress.spinner import Spinner
+from requests import Session
 
-from joss.ingest.github_issues import (
-    Config,
-    RepoTarget,
-    build_headers,
-    fetch_issues_page,
-    get_token,
-)
+from joss.ingest.github import GitHubIngest
+from joss.ingest.repo_target import RepoTarget
 from joss.logger import JOSSLogger
 from joss.utils import JOSSUtils
 
-JsonObject = dict[str, Any]
-JsonList = list[JsonObject]
+HTTP_FORBIDDEN: int = 403
+HTTP_OK: int = 200
 
 
-class JOSSIngest:
+class JOSSIngest(GitHubIngest):
     """
     Collect all issues from ``openjournals/joss-reviews``.
 
@@ -33,18 +26,86 @@ class JOSSIngest:
     logging, and timestamp handling to the shared utility classes.
     """
 
-    def __init__(self, max_pages: int | None = None) -> None:
+    def __init__(self, token: str, max_pages: int | None = None) -> None:
         """
         Initialise the ingest runner.
 
         Args:
+            token: GitHub personal access token for API authentication.
             max_pages: Optional cap on the number of API pages to
-                fetch.  ``None`` means fetch all available pages.
+                fetch. ``None`` means fetch all available pages.
 
         """
-        self._max_pages: int | None = max_pages
+        super().__init__(
+            logger=JOSSLogger(name=__name__),
+            token=token,
+            max_pages=max_pages,
+        )
 
-    def execute(self) -> int:
+    def fetch_issue_page(
+        self,
+        session: Session,
+        target: RepoTarget,
+        page: int,
+        per_page: int = 100,
+    ) -> list[dict]:
+        """
+        Fetch a single page of issues/PRs from GitHub.
+
+        Note: GitHub's /issues endpoint can include pull requests. We keep the raw
+        objects and filter later to avoid discarding data prematurely.
+
+        Args:
+            session: A configured requests session.
+            target: Repository identifier.
+            page: The page number to fetch (1-indexed).
+            per_page: Items per page (GitHub max is 100).
+            state: Issue state filter ("open", "closed", or "all").
+
+        Returns:
+            A list of issue/PR JSON objects.
+
+        Raises:
+            RuntimeError: If the GitHub API returns a non-200 response or an
+                unexpected JSON payload type.
+
+        """
+        url: str = f"{self._api_base}/repos/{target.owner}/{target.repo}/issues"
+        params: dict[str, object] = {
+            "state": "all",
+            "per_page": per_page,
+            "page": page,
+            "sort": "created",
+            "direction": "desc",
+        }
+
+        resp = session.get(url, params=params, timeout=30)
+        if resp.status_code == HTTP_FORBIDDEN:
+            self._sleep_until_reset(resp)
+            resp = session.get(url, params=params, timeout=30)
+
+        if resp.status_code != HTTP_OK:
+            msg = (
+                f"GitHub API error {resp.status_code} for {resp.url}\n"
+                f"Response (first 500 chars): {resp.text[:500]}"
+            )
+            raise RuntimeError(msg)
+
+        self.logger.get_logger().info(
+            "Fetched page %s (%s). %s",
+            page,
+            target.full_name(),
+            self._rate_limit_status(resp.headers),
+        )
+
+        data = resp.json()
+        if not isinstance(data, list):
+            err_msg = "Unexpected response type: expected list"
+            raise RuntimeError(err_msg)
+
+        return data
+
+    def execute(self) -> list[dict]:
         """
         Run the full ingestion routine.
 
@@ -58,36 +119,27 @@ class JOSSIngest:
         joss_logger.setup_file_logging(timestamp, "github_issues")
         logger: logging.Logger = joss_logger.get_logger()
 
-        token: str = get_token()
-        target = RepoTarget(owner="openjournals", repo="joss-reviews")
-        config = Config(
-            token=token,
-            target=target,
-            per_page=100,
-            max_pages=self._max_pages,
-            timestamp=timestamp,
-        )
+        target: RepoTarget = RepoTarget(owner="openjournals", repo="joss-reviews")
 
         session = requests.Session()
-        session.headers.update(build_headers(config.token))
+        session.headers.update(self._build_headers())
 
         page: int = 1
         total_fetched: int = 0
-        all_issues: JsonList = []
+        all_issues: list[dict] = []
 
-        logger.info("Starting collection for %s.", config.target.full_name())
+        logger.info("Starting collection for %s.", target.full_name())
 
         spinner = Spinner(
             "Getting issues from `gh:openjournals/joss-reviews`... ",
         )
 
         while True:
-            issues = fetch_issues_page(
-                session,
-                config.target,
+            issues = self.fetch_issue_page(
+                session=session,
+                target=target,
                 page=page,
-                per_page=config.per_page,
-                state="all",
+                per_page=100,
             )
             spinner.next()
 
@@ -104,13 +156,13 @@ class JOSSIngest:
                 len(all_issues),
             )
 
-            if len(issues) < config.per_page:
+            if len(issues) < 100:
                 break
 
-            if config.max_pages is not None and page >= config.max_pages:
+            if self._max_pages is not None and page >= self._max_pages:
                 logger.info(
                     "Reached max-pages=%s; stopping early.",
-                    config.max_pages,
+                    self._max_pages,
                 )
                 break
 
@@ -118,15 +170,10 @@ class JOSSIngest:
 
         spinner.finish()
 
-        json_path: Path = Path(
-            f"github_issues_{config.timestamp}.json",
-        ).absolute()
-        JOSSUtils.save_json(all_issues, json_path, indent=4)
-
-        logger.info(
+        self.logger.get_logger().info(
             "Done. total_fetched=%s total_issues=%s",
             total_fetched,
             len(all_issues),
         )
-        logger.info("Saved to: %s", json_path)
-        return 0
+
+        return all_issues
