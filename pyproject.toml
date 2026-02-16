@@ -24,7 +24,7 @@ Homepage = "https://github.com/NicholasSynovic/joss-dataset"
 Repository = "https://github.com/NicholasSynovic/joss-dataset"
 
 [project.scripts]
-src = "joss.main:main"
+joss = "joss.main:main"
 
 
 [build-system]

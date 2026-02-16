@@ -20,16 +20,16 @@ Pre-commit hooks automatically enforce code quality:
 pre-commit run --all
 
 # Format code (ruff, isort)
-ruff format src/
-isort src/
+ruff format joss/
+isort joss/
 
 # Check for issues (ruff lint, bandit)
-ruff check src/
-bandit src/
+ruff check joss/
+bandit joss/
 ```
 
 ### Testing
-Currently, the project does not have a test suite. All analysis scripts are in `src/analysis/` and can be verified by:
+Currently, the project does not have a test suite. All analysis scripts are in `joss/analysis/` and can be verified by:
 - Running them manually with appropriate data inputs
 - Checking linter/formatter compliance
 - Verifying imports and type hints with ruff
@@ -62,7 +62,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 
-from .utils import count_years, load_submissions
+from joss.analysis.utils import count_years, load_submissions
 ```
 
 ### Formatting
@@ -160,12 +160,37 @@ Enabled rule categories include: security (S), type annotations (ANN), naming (N
 ## Project Structure
 
 ```
-src/
+joss/
   ├── __init__.py
-  ├── main.py          # Entry point
+  ├── main.py          # Entry point with subcommands
+  ├── cli.py           # CLI utilities class
+  ├── logger.py        # Logging utilities class
   ├── analysis/        # Analysis scripts for JOSS dataset
   ├── ingest/          # Data ingestion modules
+  │   └── github_issues.py  # GitHub issues ingestion
   └── transform/       # Data transformation modules
+      ├── joss_submission.py
+      └── normalize_joss_submissions.py
+```
+
+## CLI Commands
+
+### Unified CLI (via pyproject.toml entry point)
+```bash
+# Ingest GitHub issues
+joss ingest --max-pages 1
+
+# Transform issues to normalized format
+joss transform --in-file github_issues_1234567890.json
+```
+
+### Standalone Scripts (backward compatible)
+```bash
+# Ingest GitHub issues
+python joss/ingest/github_issues.py --max-pages 1
+
+# Transform issues to normalized format
+python joss/transform/normalize_joss_submissions.py --in-file github_issues_1234567890.json
 ```
 
 ## Key Tools & Versions
@@ -175,3 +200,12 @@ src/
 - **Pre-commit**: v6.0.0+
 - **Security checker**: Bandit v1.9.3+
 - **Import sorter**: isort 7.0.0+
+- **Data validation**: pydantic v2.12.5+
+- **Terminal spinners**: progress v1.6+
+
+## Dependencies
+- **requests**: HTTP client for GitHub API
+- **pydantic**: Data validation and settings management
+- **progress**: Terminal spinners for progress indication
+- **matplotlib**: Visualization library
+- **seaborn**: Statistical data visualization
