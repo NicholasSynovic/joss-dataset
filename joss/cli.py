@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 
 
 class CLI:
@@ -43,3 +44,27 @@ class CLI:
             required=required,
             help="Path to input JSON file containing array of GitHub issues.",
         )
+
+    @staticmethod
+    def get_token() -> str:
+        """
+        Read `GITHUB_TOKEN` from the environment.
+
+        Returns:
+            The GitHub token read from the `GITHUB_TOKEN` environment variable.
+
+        Raises:
+            RuntimeError: If `GITHUB_TOKEN` is missing/empty.
+
+        """
+        token: str = os.environ.get("GITHUB_TOKEN", "").strip()
+        if not token:
+            msg = (
+                "Missing GITHUB_TOKEN environment variable.\n"
+                "Set it before running, e.g.:\n"
+                "  export GITHUB_TOKEN='ghp_...'\n"
+                "or (PowerShell):\n"
+                '  setx GITHUB_TOKEN "ghp_..."'
+            )
+            raise RuntimeError(msg)
+        return token
