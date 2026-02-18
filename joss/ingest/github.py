@@ -1,7 +1,7 @@
+import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from logging import Logger
-from time import time
 
 from requests import Response, Session
 from requests.structures import CaseInsensitiveDict
@@ -15,13 +15,13 @@ HTTP_FORBIDDEN: int = 403
 
 class GitHubIngest(ABC):
     def __init__(
-        self, logger: JOSSLogger, token: str, max_pages: int | None = None
+        self, jossLogger: JOSSLogger, token: str, max_pages: int | None = None
     ) -> None:
         self._api_base: str = "https://api.github.com"
         self._github_api_version: str = "2022-11-28"
         self._max_pages: int | None = max_pages
 
-        self.logger: JOSSLogger = logger
+        self.logger: Logger = jossLogger.get_logger()
         self.token = token
 
     def _build_headers(self) -> dict:
@@ -42,10 +42,8 @@ class GitHubIngest(ABC):
             "User-Agent": "joss-dataset-ingest",
         }
 
-    def _rate_limit_status(
-        self,
-        headers: CaseInsensitiveDict[str],
-    ) -> str:
+    @staticmethod
+    def _rate_limit_status(headers: CaseInsensitiveDict[str]) -> str:
         """
         Format GitHub rate limit headers for logging.
 
@@ -73,7 +71,7 @@ class GitHubIngest(ABC):
 
         return f"rate-limit: {remaining}/{limit} (resets {reset_dt.isoformat()})"
 
-    def _sleep_until_reset(self, logger: Logger, resp: Response) -> None:
+    def _sleep_until_reset(self, resp: Response) -> None:
         """
         Sleep until GitHub's rate limit reset if the response indicates limiting.
 
@@ -92,7 +90,7 @@ class GitHubIngest(ABC):
         sleep_for = max(0, reset_ts - now_ts) + 5
 
         reset_dt = datetime.fromtimestamp(reset_ts, tz=timezone.utc)
-        logger.warning(
+        self.logger.warning(
             "Rate limited. Sleeping %ss until %s.", sleep_for, reset_dt.isoformat()
         )
         time.sleep(sleep_for)

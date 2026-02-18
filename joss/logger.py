@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+from joss.utils import JOSSUtils
+
 
 class JOSSLogger:
     """
@@ -24,7 +26,9 @@ class JOSSLogger:
         """
         self._logger: logging.Logger = logging.getLogger(name)
 
-    def setup_file_logging(self, timestamp: int, prefix: str) -> str:
+        self.timestamp: int = JOSSUtils.get_timestamp()
+
+    def setup_file_logging(self, prefix: str) -> str:
         """
         Attach a ``DEBUG``-level file handler to the logger.
 
@@ -32,14 +36,13 @@ class JOSSLogger:
         written to the current working directory.
 
         Args:
-            timestamp: UNIX timestamp used in the log filename.
             prefix: Filename prefix (e.g. ``"github_issues"``).
 
         Returns:
             The log filename that was created.
 
         """
-        log_filename: str = f"{prefix}_{timestamp}.log"
+        log_filename: str = f"{prefix}_{self.timestamp}.log"
         handler = logging.FileHandler(log_filename)
         handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter(

@@ -14,6 +14,7 @@ from joss.utils import JOSSUtils
 
 HTTP_FORBIDDEN: int = 403
 HTTP_OK: int = 200
+HTTP_TIMEOUT: int = 60
 
 
 class JOSSIngest(GitHubIngest):
@@ -26,7 +27,12 @@ class JOSSIngest(GitHubIngest):
     logging, and timestamp handling to the shared utility classes.
     """
 
-    def __init__(self, token: str, max_pages: int | None = None) -> None:
+    def __init__(
+        self,
+        jossLogger: JOSSLogger,
+        token: str,
+        max_pages: int | None = None,
+    ) -> None:
         """
         Initialise the ingest runner.
 
@@ -37,7 +43,7 @@ class JOSSIngest(GitHubIngest):
 
         """
         super().__init__(
-            logger=JOSSLogger(name=__name__),
+            jossLogger=jossLogger,
             token=token,
             max_pages=max_pages,
         )
@@ -79,11 +85,13 @@ class JOSSIngest(GitHubIngest):
             "direction": "desc",
         }
 
-        resp = session.get(url, params=params, timeout=30)
+        # Get an API response and sleep if rate limit is hit
+        resp = session.get(url, params=params, timeout=HTTP_TIMEOUT)
         if resp.status_code == HTTP_FORBIDDEN:
             self._sleep_until_reset(resp)
-            resp = session.get(url, params=params, timeout=30)
+            resp = session.get(url, params=params, timeout=HTTP_TIMEOUT)
 
+        # Check if the API returned an HTTP_OK status code
         if resp.status_code != HTTP_OK:
             msg = (
                 f"GitHub API error {resp.status_code} for {resp.url}\n"
@@ -91,14 +99,16 @@ class JOSSIngest(GitHubIngest):
             )
             raise RuntimeError(msg)
 
-        self.logger.get_logger().info(
+        # Write to log the current API page and rate limit status
+        self.logger.info(
             "Fetched page %s (%s). %s",
             page,
             target.full_name(),
             self._rate_limit_status(resp.headers),
         )
 
-        data = resp.json()
+        # Get the JSON response of the API call
+        data: list[dict] = resp.json()
         if not isinstance(data, list):
             err_msg = "Unexpected response type: expected list"
             raise RuntimeError(err_msg)
@@ -110,32 +120,31 @@ class JOSSIngest(GitHubIngest):
         Run the full ingestion routine.
 
         Returns:
-            Exit code (``0`` for success).
+            List of JSON objects serialized as Python dictionaries.
 
         """
-        timestamp: int = JOSSUtils.get_timestamp()
-
-        joss_logger = JOSSLogger(__name__)
-        joss_logger.setup_file_logging(timestamp, "github_issues")
-        logger: logging.Logger = joss_logger.get_logger()
-
+        # Setup the JOSS target repo
         target: RepoTarget = RepoTarget(owner="openjournals", repo="joss-reviews")
 
-        session = requests.Session()
+        # Setup request Session object
+        session: Session = Session()
         session.headers.update(self._build_headers())
 
         page: int = 1
         total_fetched: int = 0
         all_issues: list[dict] = []
 
-        logger.info("Starting collection for %s.", target.full_name())
+        self.logger.info("Starting collection for %s.", target.full_name())
 
         spinner = Spinner(
             "Getting issues from `gh:openjournals/joss-reviews`... ",
         )
 
+        # Run until either there are less than 100 issues returned or
+        # Until the maximum number of pages is reached
         while True:
-            issues = self.fetch_issue_page(
+            # Query the API
+            issues: list = self.fetch_issue_page(
                 session=session,
                 target=target,
                 page=page,
@@ -143,24 +152,28 @@ class JOSSIngest(GitHubIngest):
             )
             spinner.next()
 
+            # If no issues reutrned, break out of the loop
             if issues == []:
                 break
 
+            # Keep track of the total number of issues fetched
             total_fetched += len(issues)
             all_issues.extend(issues)
 
-            logger.info(
+            self.logger.info(
                 "Page %s: fetched=%s total_collected=%s",
                 page,
                 len(issues),
                 len(all_issues),
             )
 
+            # If the number of issues is less than 100, break out of the loop
             if len(issues) < 100:
                 break
 
+            # If the maximum number of pages is hit, break out of the loop
             if self._max_pages is not None and page >= self._max_pages:
-                logger.info(
+                self.logger.info(
                     "Reached max-pages=%s; stopping early.",
                     self._max_pages,
                 )
@@ -170,7 +183,7 @@ class JOSSIngest(GitHubIngest):
 
         spinner.finish()
 
-        self.logger.get_logger().info(
+        self.logger.info(
             "Done. total_fetched=%s total_issues=%s",
             total_fetched,
             len(all_issues),

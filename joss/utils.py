@@ -55,7 +55,30 @@ class JOSSUtils:
             The current UTC time in ISO-8601 format (seconds precision).
 
         """
-        return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        return int(
+            datetime.now(tz=timezone.utc)
+            .replace(
+                microsecond=0,
+            )
+            .timestamp()
+        )
+
+    @staticmethod
+    def iso_to_unix(ts: str | None) -> int:
+        """
+        Convert a ISO timestamp to unix seconds.
+
+        Returns:
+            Unix seconds. Returns 0 if `ts` is None to keep the schema strictly
+            int.
+
+        """
+        if ts is None:
+            return 0
+        dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc,
+        )
+        return int(dt.timestamp())
 
     @staticmethod
     def extract_timestamp_from_filename(filename: str) -> int | None:
