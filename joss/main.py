@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from joss import APPLICATION_NAME
 from joss.cli import CLI
 from joss.ingest.joss import JOSSIngest
 from joss.logger import JOSSLogger
@@ -13,44 +14,13 @@ from joss.utils import JOSSUtils
 
 
 def main() -> int:
-    """
-    Parse sub-commands and dispatch to the appropriate handler.
-
-    Sub-commands:
-        ingest    -- Collect issues from ``openjournals/joss-reviews``.
-        transform -- Normalize a raw issues JSON file.
-
-    """
-    parser = argparse.ArgumentParser(
-        prog="joss",
-        description="JOSS dataset toolkit.",
-    )
-    subparsers = parser.add_subparsers(
-        dest="command",
-    )
-
-    # -- ingest sub-command ------------------------------------
-    ingest_parser = subparsers.add_parser(
-        "ingest",
-        help="Collect all issues from openjournals/joss-reviews.",
-    )
-    CLI.add_max_pages_argument(ingest_parser)
-
-    # -- transform sub-command ---------------------------------
-    transform_parser = subparsers.add_parser(
-        "transform",
-        help="Normalize raw GitHub issues JSON into a stable format.",
-    )
-    CLI.add_in_file_argument(transform_parser)
-
-    args = parser.parse_args()
+    args = CLI().run()
 
     if args.command is None:
-        parser.print_help()
         sys.exit(1)
 
     logger: JOSSLogger = JOSSLogger(name=__name__)
-    logger.setup_file_logging(prefix="joss")
+    logger.setup_file_logging(prefix=APPLICATION_NAME)
 
     if args.command == "ingest":
         # Get GitHub issues from openjournals/joss-review
@@ -87,7 +57,6 @@ def main() -> int:
         )
 
     else:
-        parser.print_help()
         sys.exit(1)
 
     sys.exit(0)

@@ -1,9 +1,10 @@
 """CLI argument helpers for the unified JOSS command."""
 
-from __future__ import annotations
-
 import argparse
 import os
+from argparse import ArgumentParser, Namespace
+
+from joss import APPLICATION_NAME
 
 
 class CLI:
@@ -40,7 +41,8 @@ class CLI:
 
         """
         parser.add_argument(
-            "--in-file",
+            "-i",
+            "--input",
             required=required,
             help="Path to input JSON file containing array of GitHub issues.",
         )
@@ -68,3 +70,32 @@ class CLI:
             )
             raise RuntimeError(msg)
         return token
+
+    def run(self) -> Namespace:
+        # Setup top level parser
+        parser = ArgumentParser(
+            prog=APPLICATION_NAME,
+            description=f"{APPLICATION_NAME} dataset toolkit.",
+        )
+
+        # Setup subparser handler
+        subparsers = parser.add_subparsers(
+            dest="command",
+        )
+
+        # Create ingest subparser
+        ingest_parser = subparsers.add_parser(
+            "ingest",
+            help="Collect all issues from openjournals/joss-reviews.",
+        )
+        self.add_max_pages_argument(parser=ingest_parser)
+
+        # Create transform subparser
+        transform_parser = subparsers.add_parser(
+            "transform",
+            help="Normalize raw GitHub issues JSON into a stable format.",
+        )
+        self.add_in_file_argument(transform_parser)
+
+        # Parse args
+        return parser.parse_args()
