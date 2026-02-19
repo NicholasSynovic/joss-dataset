@@ -17,6 +17,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "matplotlib>=3.10.8",
     "pydantic>=2.12.5",
+    "ghapi>=1.0.10",
 ]
 
 [project.urls]
