@@ -235,6 +235,7 @@ source = { editable = "." }
 dependencies = [
     { name = "ghapi" },
     { name = "matplotlib" },
+    { name = "pandas" },
     { name = "progress" },
     { name = "pydantic" },
     { name = "requests" },
@@ -246,6 +247,7 @@ dependencies = [
 requires-dist = [
     { name = "ghapi", specifier = ">=1.0.10" },
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "pandas", specifier = ">=3.0.0" },
     { name = "progress" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "requests" },
