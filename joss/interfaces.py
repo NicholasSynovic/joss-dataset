@@ -8,10 +8,7 @@ class ExtractInterface(ABC):
 
 class TransformInterface(ABC):
     @abstractmethod
-    def normalaize_data(self) -> list[dict]: ...
-
-    @abstractmethod
-    def parse_field_factory(self, field: str) -> str: ...
+    def transform_data(self) -> dict: ...
 
 
 class LoadInterface(ABC):
