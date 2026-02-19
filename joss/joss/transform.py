@@ -101,12 +101,17 @@ class JOSSTransform(TransformInterface):
                     continue
 
                 joss_url: str = self._extract_github_repo_url(body=issue.body)
+                joss_resolved_url: str = (
+                    self._resolve_joss_url(url=joss_url)
+                    if "accepted" in issue.labels
+                    else ""
+                )
 
                 datum: JOSSPaperProjectIssue = JOSSPaperProjectIssue(
                     _id=paper_project_id,
                     _joss_github_issue_id=issue._id,
                     joss_url=joss_url,
-                    joss_resolved_url=self._resolve_joss_url(url=joss_url),
+                    joss_resolved_url=joss_resolved_url,
                     github_repo_url=self._extract_github_repo_url(
                         body=issue.body,
                     ),
