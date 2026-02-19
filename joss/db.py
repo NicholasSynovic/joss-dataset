@@ -30,21 +30,23 @@ class DB:
         _: Table = Table(
             "_joss_github_issues",
             self.metadata,
-            Column("_id", Integer, primary_key=True),
+            Column("id", Integer, primary_key=True),
             Column("is_pull_request", Boolean),
+            Column("body", String),
             Column("creator", String),
-            Column("status", String),
+            Column("state", String),
+            Column("labels", String),
             Column("json_str", String),
         )
 
         _: Table = Table(
             "_joss_paper_project_issues",
             self.metadata,
-            Column("_id", Integer, primary_key=True),
+            Column("id", Integer, primary_key=True),
             Column(
-                "_joss_github_issue_id",
+                "joss_github_issue_id",
                 Integer,
-                ForeignKey("_joss_github_issues._id"),
+                ForeignKey("_joss_github_issues.id"),
             ),
             Column("github_repo_url", String),
             Column("joss_url", String),

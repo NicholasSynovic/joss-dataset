@@ -19,9 +19,9 @@ HTTP_HEAD_TIMEOUT: int = 60
 
 
 class JOSSGHIssue(BaseModel):
-    _id: int
+    id: int
     is_pull_request: bool
-    labels: list[str]
+    labels: str
     body: str
     creator: str
     state: str
@@ -29,8 +29,8 @@ class JOSSGHIssue(BaseModel):
 
 
 class JOSSPaperProjectIssue(BaseModel):
-    _id: int
-    _joss_github_issue_id: int
+    id: int
+    joss_github_issue_id: int
     github_repo_url: str
     joss_url: str
     joss_resolved_url: str
