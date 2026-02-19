@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from json import dumps
 from logging import Logger
 
@@ -120,3 +121,17 @@ class JOSSTransform(TransformInterface):
             len(data),
         )
         return data
+
+    def transform_data(self, data: list[dict]) -> dict[str, list]:
+        normalized_data: dict[str, list] = defaultdict(list)
+
+        normalized_data["_joss_github_issues"] = self.normalize_joss_gh_issues(
+            issues=data,
+        )
+        normalized_data["_joss_paper_project_issues"] = (
+            self.normalize_joss_paper_project_issues(
+                issues=normalized_data["_joss_github_issues"]
+            )
+        )
+
+        return normalized_data

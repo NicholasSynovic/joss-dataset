@@ -8,7 +8,7 @@ class ExtractInterface(ABC):
 
 class TransformInterface(ABC):
     @abstractmethod
-    def transform_data(self) -> dict: ...
+    def transform_data(self, data: list[dict]) -> dict[str, list]: ...
 
 
 class LoadInterface(ABC):
