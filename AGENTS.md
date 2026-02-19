@@ -1,6 +1,6 @@
 # Agent Guidelines for JOSS Dataset Repository
 
-This document provides instructions for agentic coding systems working in this Python project.
+Instructions for agentic coding systems working in this Python project.
 
 ## Build, Lint, and Test Commands
 
@@ -16,11 +16,11 @@ make build
 
 ### Linting and Formatting
 
-Pre-commit hooks automatically enforce code quality:
+Pre-commit hooks enforce code quality. Run manually:
 
 ```bash
 # Run all pre-commit checks
-pre-commit run --all
+pre-commit run --all-files
 
 # Run on specific files
 pre-commit run ruff-check --files joss/utils.py joss/main.py
@@ -31,7 +31,23 @@ pre-commit run bandit --files joss/utils.py joss/main.py
 
 ### Testing
 
-Currently, the project does not have a test suite. All analysis scripts are in `joss/analysis/` and can be verified by running them manually with appropriate data inputs or checking linter/formatter compliance.
+No test suite exists yet. When tests are added:
+
+```bash
+# Run all tests
+pytest
+
+# Run a single test file
+pytest tests/test_parsers.py
+
+# Run a single test function
+pytest tests/test_parsers.py::test_parse_joss_issue
+
+# Run with coverage
+pytest --cov=joss --cov-report=term-missing
+```
+
+Verify analysis scripts in `joss/analysis/` by running them manually.
 
 ## Code Style Guidelines
 
@@ -41,11 +57,9 @@ Currently, the project does not have a test suite. All analysis scripts are in `
 
 ### Imports
 
-- **Order**: Follow isort (Black profile)
-  1. Standard library imports
-  2. Third-party imports (blank line before)
-  3. Local imports (blank line before)
-- **Style**: Use explicit absolute imports; avoid star imports
+- **Order**: isort (Black profile): stdlib → third-party → local
+- **Style**: Explicit absolute imports; no star imports
+- Separate groups with blank lines
 
 ### Formatting
 
@@ -58,10 +72,10 @@ Currently, the project does not have a test suite. All analysis scripts are in `
 ### Type Hints
 
 - **Mandatory**: All function parameters and returns must have type hints
-- **Style**: Use modern syntax (e.g., `list[T]` instead of `List[T]`)
-- **Return types**: Always specify, use `-> None` for void functions
-- **Union types**: Use `|` operator: `int | str`
-- **ANN401 Exception**: `typing.Any` is allowed when necessary (e.g., `json.loads`); suppress with `# noqa: ANN401`
+- **Style**: Modern syntax (`list[T]` not `List[T]`)
+- **Returns**: Always specify, use `-> None` for void functions
+- **Unions**: Use `|` operator: `int | str`
+- **ANN401**: `typing.Any` allowed when necessary; suppress with `# noqa: ANN401`
 
 ### Naming Conventions
 
@@ -74,8 +88,9 @@ Currently, the project does not have a test suite. All analysis scripts are in `
 ### Documentation
 
 - **Module docstrings**: Required at top of file
-- **Function/method docstrings**: Required for all public functions
-- **Format**: Google-style docstrings with Args, Returns, Raises sections
+- **Function docstrings**: Required for all public functions
+- **Format**: Google-style with Args, Returns, Raises sections
+- Start multi-line docstrings on second line (not same line as quotes)
 
 ### Error Handling
 
@@ -85,40 +100,36 @@ Currently, the project does not have a test suite. All analysis scripts are in `
 
 ## Linting Rules (Ruff)
 
-Enabled rule categories include: security (S), type annotations (ANN), naming (N), error handling (E), imports (I), docstrings (D), and many others. Key ignored rules:
+Enabled: security (S), type annotations (ANN), naming (N), docstrings (D), and more.
 
+Ignored rules:
 - `D203`: Blank line before docstring (conflicts with D211)
 - `D212`: Summary after description newline
 - `COM812`: Trailing comma conflicts with Black
 - `S404`: Use of subprocess (when intentional)
 
-## File Encoding
+## File Requirements
 
 - **Encoding**: UTF-8 with LF line endings
-- **Final newline**: All files must end with newline character
+- **Final newline**: All files must end with newline
+- **Copyright**: Include copyright notice at top of file
 
 ## Project Structure
 
 ```text
 joss/
-  ├── __init__.py
-  ├── main.py              # Entry point with subcommands (joss ingest/transform)
-  ├── cli.py               # CLI utilities class
-  ├── logger.py             # Logging utilities class
-  ├── utils.py             # Shared utility functions (JOSSUtils class)
-  ├── analysis/            # Analysis scripts for JOSS dataset
-  ├── ingest/
-  │   ├── github_issues.py       # Standalone ingestion (backward compatible)
-  │   └── joss.py                 # Unified ingest subcommand
-  └── transform/
-      ├── joss_submission.py           # JOSS submission model
-      ├── normalize_joss_submissions.py # Standalone transform (backward compatible)
-      └── joss.py                      # Unified transform subcommand
+  ├── __init__.py          # APPLICATION_NAME constant
+  ├── main.py              # Entry point with subcommands
+  ├── cli.py               # CLI class with parser setup
+  ├── logger.py            # Logging utilities
+  ├── utils.py             # Shared utility functions
+  ├── parsers.py           # Text parsing utilities
+  ├── analysis/            # Analysis scripts
+  ├── ingest/              # Data ingestion modules
+  └── transform/           # Data transformation modules
 ```
 
-## CLI Commands
-
-### Unified CLI (via pyproject.toml entry point `joss`)
+## CLI Usage
 
 ```bash
 # Ingest GitHub issues
@@ -128,23 +139,20 @@ joss ingest --max-pages 1
 joss transform --in-file github_issues_1234567890.json
 ```
 
-### Standalone Scripts (backward compatible)
+## Key Tools
 
-```bash
-python joss/ingest/github_issues.py --max-pages 1
-python joss/transform/normalize_joss_submissions.py --in-file github_issues_1234567890.json
-```
-
-## Key Tools & Versions
-
-- **Build**: Hatchling | **Dependency manager**: uv | **Linter**: Ruff v0.15.0+
-- **Pre-commit**: v6.0.0+ | **Security**: Bandit v1.9.3+ | **Import sorter**: isort 7.0.0+
-- **Data validation**: pydantic v2.12.5+ | **Terminal spinners**: progress v1.6+
+- **Build**: Hatchling
+- **Dependency manager**: uv
+- **Linter/Formatter**: Ruff v0.15.0+
+- **Pre-commit**: v6.0.0+
+- **Security**: Bandit v1.9.3+
+- **Import sorting**: isort 7.0.0+
+- **Data validation**: pydantic v2.12.5+
 
 ## Dependencies
 
 - **requests**: HTTP client for GitHub API
-- **pydantic**: Data validation and settings management
-- **progress**: Terminal spinners for progress indication
-- **matplotlib**: Visualization library
-- **seaborn**: Statistical data visualization
+- **pydantic**: Data validation
+- **progress**: Terminal spinners
+- **matplotlib**: Visualization
+- **seaborn**: Statistical visualization

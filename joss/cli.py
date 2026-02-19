@@ -1,5 +1,7 @@
 """CLI argument helpers for the unified JOSS command."""
 
+# Copyright (c) 2025 Nicholas M. Synovic
+
 import argparse
 import os
 from argparse import ArgumentParser, Namespace
@@ -42,7 +44,7 @@ class CLI:
         """
         parser.add_argument(
             "-i",
-            "--input",
+            "--in-file",
             required=required,
             help="Path to input JSON file containing array of GitHub issues.",
         )
@@ -72,6 +74,13 @@ class CLI:
         return token
 
     def run(self) -> Namespace:
+        """
+        Build and run the CLI argument parser.
+
+        Returns:
+            Parsed command-line arguments as a Namespace object.
+
+        """
         # Setup top level parser
         parser = ArgumentParser(
             prog=APPLICATION_NAME,
@@ -96,6 +105,13 @@ class CLI:
             help="Normalize raw GitHub issues JSON into a stable format.",
         )
         self.add_in_file_argument(transform_parser)
+
+        # Create parse subparser
+        parse_parser = subparsers.add_parser(
+            "parse",
+            help="Parse JOSS issue bodies from normalized JSON into structured data.",
+        )
+        self.add_in_file_argument(parse_parser)
 
         # Parse args
         return parser.parse_args()
