@@ -52,10 +52,23 @@ class JOSSTransform(TransformInterface):
 
     @staticmethod
     def _extract_github_repo_url(body: str) -> str:
+        data: str = ""
+
+        # This works for `editorialbot` created issues
         repo_match = re.search(
             r"<!--target-repository-->(.*?)<!--end-target-repository-->",
             body,
         )
+        data = repo_match.group(1).strip() if repo_match else ""
+
+        if data != "":
+            return data
+
+        # This works for all other issues
+        repo_match = re.search(
+            r"\*\*Repository:\*\*.*?(https://github\.com/[\w\-/]+)", body
+        )
+
         return repo_match.group(1).strip() if repo_match else ""
 
     @staticmethod
