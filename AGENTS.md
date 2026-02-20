@@ -57,25 +57,26 @@ Verify analysis scripts in `joss/analysis/` by running them manually.
 
 ### Imports
 
-- **Order**: isort (Black profile): stdlib → third-party → local
+- **Order**: isort (Black profile), configured in `.isort.cfg`
+- **Line length**: 79 for import wrapping (matches `.isort.cfg`)
 - **Style**: Explicit absolute imports; no star imports
-- Separate groups with blank lines
+- Separate groups with blank lines (stdlib → third-party → local)
 
 ### Formatting
 
-- **Formatter**: Ruff (replaces Black)
-- **Line length**: 88 characters
+- **Formatter**: Ruff (`ruff format` via pre-commit)
+- **Line length**: follow Ruff defaults unless project config adds one
 - **Quotes**: Double quotes (`"string"`)
 - **Indentation**: 4 spaces
-- **Trailing commas**: Respected
+- **Trailing commas**: Keep if formatter adds them
 
 ### Type Hints
 
 - **Mandatory**: All function parameters and returns must have type hints
 - **Style**: Modern syntax (`list[T]` not `List[T]`)
 - **Returns**: Always specify, use `-> None` for void functions
-- **Unions**: Use `|` operator: `int | str`
-- **ANN401**: `typing.Any` allowed when necessary; suppress with `# noqa: ANN401`
+- **Unions**: Use `|` operator (e.g., `int | str`)
+- **Any**: `typing.Any` allowed only when necessary, use `# noqa: ANN401`
 
 ### Naming Conventions
 
@@ -83,12 +84,12 @@ Verify analysis scripts in `joss/analysis/` by running them manually.
 - **Classes**: `PascalCase`
 - **Constants**: `UPPER_SNAKE_CASE`
 - **Privates**: Prefix with `_` (e.g., `_internal_helper()`)
-- **Logger**: Name as `LOGGER = logging.getLogger(__name__)`
+- **Logger**: Use `LOGGER = logging.getLogger(__name__)` or `JOSSLogger`
 
 ### Documentation
 
 - **Module docstrings**: Required at top of file
-- **Function docstrings**: Required for all public functions
+- **Public functions/methods**: Required docstrings
 - **Format**: Google-style with Args, Returns, Raises sections
 - Start multi-line docstrings on second line (not same line as quotes)
 
@@ -96,17 +97,27 @@ Verify analysis scripts in `joss/analysis/` by running them manually.
 
 - **Exceptions**: Raise with explicit error messages
 - **Type validation**: Check types explicitly before operations
-- **Custom messages**: Store in `msg` variable before raising
+- **Message style**: Store in `msg` variable before raising
+- **Logging**: Use structured logging (`logger.info("... %s", value)`)
 
-## Linting Rules (Ruff)
+### Data and IO
 
-Enabled: security (S), type annotations (ANN), naming (N), docstrings (D), and more.
+- **Paths**: Use `pathlib.Path`
+- **Encoding**: UTF-8 for file IO (`read_text`/`write_text`)
+- **JSON**: Use `json.dumps(..., sort_keys=True)` for stable output
+
+## Linting Rules (Ruff + Bandit)
+
+Enabled: security (S), type annotations (ANN), naming (N), docstrings (D), and
+other defaults via Ruff pre-commit hooks.
 
 Ignored rules:
 - `D203`: Blank line before docstring (conflicts with D211)
 - `D212`: Summary after description newline
 - `COM812`: Trailing comma conflicts with Black
 - `S404`: Use of subprocess (when intentional)
+
+Bandit runs via pre-commit on `*.py` files.
 
 ## File Requirements
 
@@ -132,21 +143,18 @@ joss/
 ## CLI Usage
 
 ```bash
-# Ingest GitHub issues
-joss ingest --max-pages 1
-
-# Transform issues to normalized format
-joss transform --in-file github_issues_1234567890.json
+# Ingest GitHub issues (writes SQLite DB)
+joss joss --out-file joss.db
 ```
 
 ## Key Tools
 
 - **Build**: Hatchling
 - **Dependency manager**: uv
-- **Linter/Formatter**: Ruff v0.15.0+
-- **Pre-commit**: v6.0.0+
-- **Security**: Bandit v1.9.3+
-- **Import sorting**: isort 7.0.0+
+- **Linter/Formatter**: Ruff v0.15.1
+- **Pre-commit**: v6.0.0
+- **Security**: Bandit v1.9.3
+- **Import sorting**: isort 7.0.0
 - **Data validation**: pydantic v2.12.5+
 
 ## Dependencies
@@ -156,3 +164,11 @@ joss transform --in-file github_issues_1234567890.json
 - **progress**: Terminal spinners
 - **matplotlib**: Visualization
 - **seaborn**: Statistical visualization
+- **ghapi**: GitHub API wrapper
+- **sqlalchemy**: Database access
+- **pandas**: Dataframe transformations
+
+## Cursor/Copilot Rules
+
+No Cursor rules found in `.cursor/rules/` or `.cursorrules`.
+No Copilot instructions found in `.github/copilot-instructions.md`.
