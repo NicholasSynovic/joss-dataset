@@ -5,6 +5,7 @@
 import argparse
 import os
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 
 from joss import APPLICATION_NAME
 
@@ -50,6 +51,28 @@ class CLI:
         )
 
     @staticmethod
+    def add_out_file_argument(
+        parser: argparse.ArgumentParser,
+        *,
+        required: bool = True,
+    ) -> None:
+        """
+        Add the ``--our-file`` argument to a parser.
+
+        Args:
+            parser: The argument parser to augment.
+            required: Whether the argument is mandatory.
+
+        """
+        parser.add_argument(
+            "-o",
+            "--out-file",
+            required=required,
+            help="SQLite3 database path to write to.",
+            type=Path,
+        )
+
+    @staticmethod
     def get_token() -> str:
         """
         Read `GITHUB_TOKEN` from the environment.
@@ -89,29 +112,15 @@ class CLI:
 
         # Setup subparser handler
         subparsers = parser.add_subparsers(
-            dest="command",
+            dest="dataset",
         )
 
         # Create ingest subparser
         ingest_parser = subparsers.add_parser(
-            "ingest",
-            help="Collect all issues from openjournals/joss-reviews.",
+            "joss",
+            help="Get all Journal of Open Source Software (JOSS) projects.",
         )
-        self.add_max_pages_argument(parser=ingest_parser)
-
-        # Create transform subparser
-        transform_parser = subparsers.add_parser(
-            "transform",
-            help="Normalize raw GitHub issues JSON into a stable format.",
-        )
-        self.add_in_file_argument(transform_parser)
-
-        # Create parse subparser
-        parse_parser = subparsers.add_parser(
-            "parse",
-            help="Parse JOSS issue bodies from normalized JSON into structured data.",
-        )
-        self.add_in_file_argument(parse_parser)
+        self.add_out_file_argument(parser=ingest_parser, required=True)
 
         # Parse args
         return parser.parse_args()
