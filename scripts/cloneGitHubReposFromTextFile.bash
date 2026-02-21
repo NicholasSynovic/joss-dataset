@@ -106,5 +106,6 @@ while IFS= read -r line; do
   fi
 
   mkdir -p "$owner"
-  git clone "$normalized_url" "$target_dir"
+  echo $normalized_url
+  gh repo clone "$normalized_url" "$target_dir" 2>/dev/null
 done < "$input_file"
