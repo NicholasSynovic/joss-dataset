@@ -1,4 +1,7 @@
-"""Global variables for the `joss` subcommand"""
+"""Models and constants used by the JOSS dataset ETL subcommand."""
+
+# Copyright (c) 2025 Nicholas M. Synovic
+# ruff: noqa: RUF067
 
 from string import Template
 
@@ -19,6 +22,8 @@ HTTP_HEAD_TIMEOUT: int = 60
 
 
 class JOSSGHIssue(BaseModel):
+    """Normalized representation of a raw GitHub issue row."""
+
     id: int
     is_pull_request: bool
     labels: str
@@ -29,9 +34,13 @@ class JOSSGHIssue(BaseModel):
 
 
 class JOSSPaperProjectIssue(BaseModel):
+    """Derived mapping between JOSS issues and their repository metadata."""
+
     id: int
     joss_github_issue_id: int
     github_repo_url: str
-    joss_url: str
-    joss_resolved_url: str
+    repo_host: str | None
+    joss_url: str | None
+    joss_resolved_url: str | None
+    is_accepted: bool
     journal: str = "joss"

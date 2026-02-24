@@ -1,5 +1,10 @@
-import re
+"""Transformation logic for deriving normalized JOSS issue tables."""
+
+# Copyright (c) 2025 Nicholas M. Synovic
+
+import os
 from collections import defaultdict
+from collections.abc import Sequence
 from json import dumps
 from logging import Logger
 
@@ -11,16 +16,36 @@ from requests.sessions import Session
 from joss.interfaces import TransformInterface
 from joss.joss import HTTP_HEAD_TIMEOUT, JOSSGHIssue, JOSSPaperProjectIssue
 from joss.logger import JOSSLogger
+from joss.parsers import parse_joss_issue, repo_host_from_url
 
 
 class JOSSTransform(TransformInterface):
+    """Normalize extracted GitHub issue payloads into database-ready rows."""
+
     def __init__(self, joss_logger: JOSSLogger) -> None:
+        """
+        Initialize the transformer.
+
+        Args:
+            joss_logger: Logger wrapper for structured progress and warnings.
+
+        """
         self.logger: Logger = joss_logger.get_logger()
 
     def normalize_joss_gh_issues(
         self,
         issues: list[dict],
     ) -> list[JOSSGHIssue]:
+        """
+        Normalize raw API issues into `_joss_github_issues` table records.
+
+        Args:
+            issues: Raw GitHub issue objects returned by the API.
+
+        Returns:
+            List of normalized issue rows.
+
+        """
         data: list[JOSSGHIssue] = []
 
         with Bar(
@@ -50,37 +75,17 @@ class JOSSTransform(TransformInterface):
         )
         return data
 
-    @staticmethod
-    def _extract_github_repo_url(body: str) -> str:
-        data: str = ""
-
-        # This works for `editorialbot` created issues
-        repo_match = re.search(
-            r"<!--target-repository-->(.*?)<!--end-target-repository-->",
-            body,
-        )
-        data = repo_match.group(1).strip() if repo_match else ""
-
-        if data != "":
-            return data
-
-        # This works for all other issues
-        repo_match = re.search(
-            r"\*\*Repository:\*\*.*?(https://github\.com/[\w\-/]+)", body
-        )
-
-        return repo_match.group(1).strip() if repo_match else ""
-
-    @staticmethod
-    def _extract_joss_url(body: str) -> str:
-        # JOSS URL from status badge: [![status](...)](URL)
-        joss_url_match = re.search(
-            r"\[!\[status\]\([^)]+\)\]\((https://joss\.theoj\.org/papers/[^)]+)\)",
-            body,
-        )
-        return joss_url_match.group(1) if joss_url_match else ""
-
     def _resolve_joss_url(self, url: str) -> str:
+        """
+        Resolve a JOSS URL through redirects.
+
+        Args:
+            url: Candidate JOSS paper URL.
+
+        Returns:
+            Final redirected URL, or the original URL on request failure.
+
+        """
         session: Session = Session()
 
         # Define exponential backoff strategy
@@ -107,9 +112,36 @@ class JOSSTransform(TransformInterface):
             self.logger.info("Failed to resolve %s: %s", url, e)
             return url
 
+    def _maybe_resolve_joss_url(self, url: str | None) -> str | None:
+        """
+        Resolve JOSS URLs only when explicitly enabled by environment variable.
+
+        Args:
+            url: Parsed JOSS paper URL.
+
+        Returns:
+            Resolved URL when enabled and available, otherwise ``None``.
+
+        """
+        if not url:
+            return None
+        if os.getenv("JOSS_RESOLVE_URLS", "0") != "1":
+            return None
+        return self._resolve_joss_url(url=url)
+
     def normalize_joss_paper_project_issues(
         self, issues: list[JOSSGHIssue]
     ) -> list[JOSSPaperProjectIssue]:
+        """
+        Build `_joss_paper_project_issues` rows from normalized issue rows.
+
+        Args:
+            issues: Normalized GitHub issue records.
+
+        Returns:
+            List of paper-project mapping rows.
+
+        """
         paper_project_id: int = 0
         data: list[JOSSPaperProjectIssue] = []
 
@@ -127,47 +159,40 @@ class JOSSTransform(TransformInterface):
                     bar.next()
                     continue
 
-                # If not authored by `editorialbot`, ignore
-                # if issue.creator != "editorialbot":
-                #     self.logger.warning(
-                #         "Skipped issue #%d because it's not authored by `editorialbot`",
-                #         issue.id,
-                #     )
-                #     bar.next()
-                #     continue
-
-                # If not GitHub Repo URL is present, ignore
-                github_repo_url: str = self._extract_github_repo_url(
-                    body=issue.body,
-                )
-                if github_repo_url == "":
+                parsed_issue = parse_joss_issue(issue.body)
+                github_repo_url = parsed_issue.get("repository")
+                if not github_repo_url:
+                    github_repo_url = None
+                if not isinstance(github_repo_url, str) or not github_repo_url:
                     self.logger.warning(
-                        "Skipped issue #%d because no GitHub Repo URL is present",
+                        (
+                            "Skipped issue #%d because no repository URL "
+                            "could be extracted"
+                        ),
                         issue.id,
                     )
                     bar.next()
                     continue
 
-                joss_url: str = self._extract_joss_url(body=issue.body)
+                joss_url = parsed_issue.get("joss_url")
+                if not isinstance(joss_url, str) or not joss_url:
+                    joss_url = None
 
-                joss_resolved_url: str = ""
-                if "accepted" in issue.labels:
-                    if joss_url != "":  # Positive case, all checks pass
-                        joss_resolved_url = self._resolve_joss_url(url=joss_url)
-                    else:
-                        self.logger.warning(
-                            "Skipped issue #%d because no JOSS URL is present",
-                            issue.id,
-                        )
-                        bar.next()
-                        continue
-                else:
-                    self.logger.warning(
-                        "Skipped issue #%d because the issue is missing an `accepted` label",
+                is_accepted = "accepted" in issue.labels
+                if not is_accepted:
+                    self.logger.info(
+                        "Captured issue #%d; is_accepted=0",
                         issue.id,
                     )
-                    bar.next()
-                    continue
+
+                joss_resolved_url = self._maybe_resolve_joss_url(url=joss_url)
+                repo_host = repo_host_from_url(github_repo_url)
+                if repo_host and repo_host != "github.com":
+                    self.logger.info(
+                        "Captured issue #%d with non-GitHub repository host `%s`",
+                        issue.id,
+                        repo_host,
+                    )
 
                 datum: JOSSPaperProjectIssue = JOSSPaperProjectIssue(
                     id=paper_project_id,
@@ -175,6 +200,8 @@ class JOSSTransform(TransformInterface):
                     joss_url=joss_url,
                     joss_resolved_url=joss_resolved_url,
                     github_repo_url=github_repo_url,
+                    repo_host=repo_host,
+                    is_accepted=is_accepted,
                 )
 
                 data.append(datum)
@@ -188,8 +215,32 @@ class JOSSTransform(TransformInterface):
         return data
 
     def transform_data(self, data: list[dict]) -> dict[str, list]:
+        """
+        Transform extracted API payload into all load-ready table datasets.
+
+        Args:
+            data: Raw extracted GitHub API payload.
+
+        Returns:
+            Mapping from table name to serializable row dictionaries.
+
+        """
         normalized_data: dict[str, list] = defaultdict(list)
-        dict_tool = lambda foo: [bar.model_dump() for bar in foo]
+
+        def dict_tool(
+            rows: Sequence[JOSSGHIssue | JOSSPaperProjectIssue],
+        ) -> list[dict]:
+            """
+            Convert pydantic model rows into dictionaries.
+
+            Args:
+                rows: Sequence of pydantic row models.
+
+            Returns:
+                List of serialized row dictionaries.
+
+            """
+            return [row.model_dump() for row in rows]
 
         normalized_data["_joss_github_issues"] = self.normalize_joss_gh_issues(
             issues=data,

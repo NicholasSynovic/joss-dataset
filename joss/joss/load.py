@@ -1,3 +1,7 @@
+"""Loading stage for writing transformed JOSS data into SQLite tables."""
+
+# Copyright (c) 2025 Nicholas M. Synovic
+
 from logging import Logger
 
 from pandas import DataFrame
@@ -9,11 +13,31 @@ from joss.logger import JOSSLogger
 
 
 class JOSSLoad(LoadInterface):
+    """Persist transformed table rows into the configured SQLite database."""
+
     def __init__(self, joss_logger: JOSSLogger, db: DB) -> None:
+        """
+        Initialize loader dependencies.
+
+        Args:
+            joss_logger: Logger wrapper for write progress messages.
+            db: Database wrapper with engine and metadata.
+
+        """
         self.db: DB = db
         self.logger: Logger = joss_logger.get_logger()
 
     def load_data(self, data: dict[str, list]) -> bool:
+        """
+        Write transformed rows to each destination table.
+
+        Args:
+            data: Mapping from table name to list of row dictionaries.
+
+        Returns:
+            ``True`` when all tables are written successfully.
+
+        """
         table_names: list[str] = list(data.keys())
 
         self.logger.info("Writing data to `%s`", self.db._path)

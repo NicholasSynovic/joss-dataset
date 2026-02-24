@@ -1,18 +1,22 @@
 """Shared utility functions for the JOSS dataset toolkit."""
 
+# Copyright (c) 2025 Nicholas M. Synovic
+
 from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+
+JSONScalar = str | int | float | bool | None
+JSONValue = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
 
 
 class JOSSUtils:
     """Common utility methods for file I/O and timestamp handling."""
 
     @staticmethod
-    def load_json(path: Path) -> Any:  # noqa: ANN401
+    def load_json(path: Path) -> JSONValue:
         """
         Load and decode a JSON file from disk.
 
@@ -27,11 +31,11 @@ class JOSSUtils:
 
     @staticmethod
     def save_json(
-        data: Any,
+        data: JSONValue,
         path: Path,
         *,
         indent: int = 4,
-    ) -> None:  # noqa: ANN401
+    ) -> None:
         """
         Serialize data to a JSON file on disk.
 

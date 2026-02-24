@@ -12,13 +12,7 @@ from joss.logger import JOSSLogger
 
 
 def main() -> int:
-    """
-    Entry point for the JOSS CLI application.
-
-    Raises:
-        RuntimeError: If input file does not exist or has invalid format.
-
-    """
+    """Entry point for the JOSS CLI application."""
     args = CLI().run()
 
     if args.dataset is None:

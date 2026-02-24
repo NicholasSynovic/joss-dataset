@@ -1,5 +1,7 @@
 """Logging configuration for the JOSS dataset toolkit."""
 
+# Copyright (c) 2025 Nicholas M. Synovic
+
 from __future__ import annotations
 
 import logging
