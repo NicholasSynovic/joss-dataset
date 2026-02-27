@@ -16,6 +16,7 @@ JOSS_PUBLISHED_PAPERS_TEMPLATE: Template = Template(
 
 HTTP_GET_TIMEOUT: int = 60
 HTTP_HEAD_TIMEOUT: int = 60
+HTTP_POST_TIMEOUT: int = 60
 
 
 class JOSSGHIssue(BaseModel):
