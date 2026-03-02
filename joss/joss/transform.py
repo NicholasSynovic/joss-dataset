@@ -56,10 +56,9 @@ class JOSSTransform(TransformInterface):
         return data
 
     @staticmethod
-    def _extract_github_repo_url(body: str) -> str:
+    def _extract_repo_url(body: str) -> str:
         data: str = ""
 
-        # This works for `editorialbot` created issues
         repo_match = re.search(
             r"<!--target-repository-->(.*?)<!--end-target-repository-->",
             body,
@@ -70,9 +69,7 @@ class JOSSTransform(TransformInterface):
             return data
 
         # This works for all other issues
-        repo_match = re.search(
-            r"\*\*Repository:\*\*.*?(https?://github\.com/[\w\-/]+)", body
-        )
+        repo_match = re.search(r"\*\*Repository:\*\*.*?(https?://[^\s\"<>]+)", body)
 
         return repo_match.group(1).strip() if repo_match else ""
 
@@ -132,22 +129,13 @@ class JOSSTransform(TransformInterface):
                     bar.next()
                     continue
 
-                # If not authored by `editorialbot`, ignore
-                # if issue.creator != "editorialbot":
-                #     self.logger.warning(
-                #         "Skipped issue #%d because it's not authored by `editorialbot`",
-                #         issue.id,
-                #     )
-                #     bar.next()
-                #     continue
-
                 # If not GitHub Repo URL is present, ignore
-                github_repo_url: str = self._extract_github_repo_url(
+                github_repo_url: str = self._extract_repo_url(
                     body=issue.body,
                 )
                 if github_repo_url == "":
                     self.logger.warning(
-                        "Skipped issue #%d because no GitHub Repo URL is present",
+                        "Skipped issue #%d because repository URL is present",
                         issue.id,
                     )
                     bar.next()
